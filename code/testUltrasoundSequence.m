@@ -4,7 +4,7 @@ rect = [255,105,310,170];
 data = load('../data/usseq.mat');
 data = data.frames;
 for i = 1 : size(data,3)-1
-    i
+    clf
    imshow(data(:,:,i));
    hold on;
    rectangle('Position',[rect(1),rect(2),rect(3)-rect(1),rect(4)-rect(2)]);
