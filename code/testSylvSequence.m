@@ -16,13 +16,13 @@ for i = 1 : size(data,3)-1
    [u, v] = LucasKanadeBasis(data(:,:,i),data(:,:,i+1),rect_basis,bases);
    
    hold on;
-%    rectangle('Position',[rect_IC(1),rect_IC(2),rect_IC(3)-rect_IC(1),...
-%                          rect_IC(4)-rect_IC(2)],'EdgeColor','g');
-%    [u1, v1] = LucasKanadeInverseCompositional(data(:,:,i),data(:,:,i+1),rect_IC);
-%    
+   rectangle('Position',[rect_IC(1),rect_IC(2),rect_IC(3)-rect_IC(1),...
+                         rect_IC(4)-rect_IC(2)],'EdgeColor','g');
+   [u1, v1] = LucasKanadeInverseCompositional(data(:,:,i),data(:,:,i+1),rect_IC);
+   
    rect_basis = [rect_basis(1)+u, rect_basis(2)+v,...
                  rect_basis(3)+u, rect_basis(4)+v];
-%    rect_IC = [rect_IC(1)+u1, rect_IC(2)+v1,... 
-%               rect_IC(3)+u1, rect_IC(4)+v1];
+   rect_IC = [rect_IC(1)+u1, rect_IC(2)+v1,... 
+              rect_IC(3)+u1, rect_IC(4)+v1];
    drawnow;
 end
