@@ -8,6 +8,7 @@ It_mask = (double(It)~=0);
 [Gx,Gy] = imgradientxy(double(It));
 
 steepest_desc = zeros(size(It,1),size(It,2),6);
+
 [x,y] = meshgrid(1:size(It,2),1:size(It,1));
 steepest_desc(:,:,1) = arrayfun(@(x,y)x,x,y).*Gx;
 steepest_desc(:,:,2) = arrayfun(@(x,y)x,x,y).*Gy;
@@ -15,21 +16,6 @@ steepest_desc(:,:,3) = arrayfun(@(x,y)y,x,y).*Gx;
 steepest_desc(:,:,4) = arrayfun(@(x,y)y,x,y).*Gy;
 steepest_desc(:,:,5) = Gx;
 steepest_desc(:,:,6) = Gy;
-%imshowpair(steepest_desc(:,:,3),steepest_desc(:,:,4),'montage');
-%imshow(steepest_desc(:,:,5))
-% figure
-% imshow(steepest_desc(:,:,1))
-% figure
-% imshow(steepest_desc(:,:,2))
-% figure
-% imshow(steepest_desc(:,:,3))
-% figure
-% imshow(steepest_desc(:,:,4))
-% figure
-% imshow(steepest_desc(:,:,5))
-% figure
-% imshow(steepest_desc(:,:,6))
-% figure
 
 % Hessian 
 H = zeros(6,6);
@@ -39,10 +25,8 @@ for i = 1:6
         H(i,j) = sum(SD(:));
     end
 end
-figure(3)
-imshowpair(uint8(It1),uint8(It),'montage')
-figure(4)
-imshow(uint8(H));
+% figure(3)
+% imshowpair(uint8(It1),uint8(It),'montage')
 %% Iterate
 p1 = 0;
 p2 = 0;
@@ -51,21 +35,18 @@ p4 = 0;
 p5 = 0;
 p6 = 0; %v
 
-epsilon = 0.01;
+epsilon = 0.5;
 p = [1+p1 p3   p5;...
      p2   1+p4 p6];
 dP = p;
-figure(1)
-iter = 0;
+% figure(1)
 M = eye(3);
 while norm(dP) > epsilon
-    iter = iter + 1
     % Warp image according to transform matrix
-    tform = affine2d(M');
+    tform = affine2d(inv(M)');
     warp_It1 = imwarp(double(It1),tform);
-    hold on;
-    drawnow;
-        clf
+%                     drawnow;
+%                     clf
 
     % Compute error by substracting the overlap region (by masking)
     It1_common = zeros(size(It,1),size(It,2));
@@ -83,37 +64,34 @@ while norm(dP) > epsilon
          %imshowpair(It,It1_common,'montage')
 
     error_image = It1_common-double(It);
-                 figure(1)
-                 imshowpair(It1_common,error_image,'montage');
+    
+%                  figure(1)
+%                  imshowpair(It1_common,error_image,'montage');
 
     % Per pixel, multiply steepest descent
     SDparam = zeros(6,1);
-    
-            %figure
     for i = 1:6
         SD = steepest_desc(:,:,i);
         SD(common_mask~=2) = 0;
-            %subplot(2,3,i)
-            %imshow(SD)
         SDlayer = SD'*error_image;
         SDparam(i) = sum(SDlayer(:));
     end
     
     for i = 1:6
+        SDx = steepest_desc(:,:,i);
+        SDx(common_mask~=2) = 0;
         for j = 1:6
-            SD = steepest_desc(:,:,i);
-            SD(common_mask~=2) = 0;
-            SD = SD'*SD;
+            SDy = steepest_desc(:,:,j);            
+            SDy(common_mask~=2) = 0;
+            SD = SDx'*SDy;
             H(i,j) = sum(SD(:));
         end
     end
-    
-    figure(4)
-    imshow(H)
+%                figure(4)
+%                imshow(H/norm(H))
 
     % Compute delta p
     dP = pinv(H)*SDparam;
-    
     % Update the warp
     newP = 1/((1+dP(1))*(1+dP(4))-dP(2)*dP(3))*[-dP(1)-dP(1)*dP(4)+dP(2)*dP(3); ...
                                                 -dP(2);...
@@ -130,12 +108,12 @@ while norm(dP) > epsilon
     p6 = p6+newP(6)+p2*newP(5)+p4*newP(6);
     
     p = [1+p1 p3 p5; p2 1+p4 p6];
-    norm(dP)
+%     norm(dP)
     M = [p ;[0    0    1]];
 end
 
 
-figure(2)
-tform = affine2d(M');
-warp_It1 = imwarp(double(It1),tform);
-imshowpair(It,warp_It1,'montage');
+% figure(2)
+% tform = affine2d(inv(M)');
+% warp_It = imwarp(double(It),tform);
+% imshowpair(It1,warp_It,'montage');
