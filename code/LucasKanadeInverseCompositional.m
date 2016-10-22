@@ -1,18 +1,23 @@
 function [u,v] = LucasKanadeInverseCompositional(It, It1, rect)
-
 % input - image at time t, image at t+1, rectangle (top left, bot right coordinates)
 % output - movement vector, [u,v] in the x- and y-directions.
 
 %% Precomputation
-
 It = im2double(It);
 It1 = im2double(It1);
-% Template gradient
-[X,Y] = meshgrid(rect(1):rect(3),rect(2):rect(4));
-temp_It = interp2(It,X,Y,'linear');
-[height,width] = size(temp_It);
-[Gx,Gy] = imgradientxy(temp_It);
+width = rect(3)-rect(1);
+height = rect(4)-rect(2);
 
+% Template gradient
+A = 0:width;
+B =  0:height;
+A = A + rect(1);
+B = B + rect(2);
+[X,Y] = meshgrid(A, B);
+temp_It = interp2(double(It),X,Y,'spline');
+
+%[height,width] = size(temp_It);
+[Gx,Gy] = imgradientxy(temp_It);
 % Steepest Descent
 % Jacobian
 % init_dwdp =  [0 0 0 0 1 0; 0 0 0 0 0 1];
@@ -22,10 +27,10 @@ steepest_desc(:,:,6) = Gy;
 
 % Hessian 
 H = zeros(6,6);
-for i = 1 : size(Gx,2)
-    for j = 1: size(Gx,1)
-        desc_pixel = reshape(steepest_desc(j,i,:),1,6);
-        H = H + desc_pixel' * desc_pixel;
+for i = 5:6
+    for j = 5:6
+        SD = steepest_desc(:,:,i)'*steepest_desc(:,:,j);
+        H(i,j) = sum(SD(:));
     end
 end
 
@@ -41,15 +46,15 @@ newP = p;
 while norm(dP) > epsilon
     % Warp image according to warped window
     % Compute error by subtracting It1 window with It window
-    [X1,Y1]=meshgrid(linspace(rect(1)+newP(5),rect(3)+newP(5),width),linspace(rect(2)+newP(6),rect(4)+newP(6),height));
-    warp_It1=interp2(It1,X1,Y1,'spline');
-    
+    [X1,Y1] = meshgrid(A+newP(5), B+newP(6));
+    warp_It1 = interp2(double(It1),X1,Y1,'spline');
+
     error_image = warp_It1 - temp_It;
     
-    % Per pixel, multiply steepest descent
+    % Multiply steepest descent
     SDparam = zeros(6,1);
     for i = 5:6
-        SDlayer = steepest_desc(:,:,i).*error_image;
+        SDlayer = steepest_desc(:,:,i)'*error_image;
         SDparam(i) = sum(SDlayer(:));
     end
 
@@ -62,4 +67,6 @@ while norm(dP) > epsilon
     newP = [0;0;0;0;-p5;-p6];
     u = newP(5);
     v = newP(6);
+    
+    norm(newP);
 end

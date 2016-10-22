@@ -5,20 +5,17 @@ function M = LucasKanadeAffine(It, It1)
 It = im2double(It);
 It1 = im2double(It1);
 %% Precomputation
-
 % Template gradient - find overlapped region
+It_mask = (It~=0);
+[Gx,Gy] = imgradientxy(It);
 
-temp_It = It;
-It_mask = (temp_It~=0);
-
-[Gx,Gy] = imgradientxy(temp_It);
-
-init_dwdp =@(x,y)  [x 0 y 0 1 0; 0 x 0 y 0 1]; % Jacobian
-steepest_desc = zeros(whole_rect(4)-whole_rect(2)+1,whole_rect(3)-whole_rect(1)+1,6);
+init_dwdp =@(x,y)  [x/size(It1,2) 0 y/size(It1,1) 0 1 0;...
+                    0 x/size(It1,2) 0 y/size(It1,1) 0 1]; % Jacobian
+steepest_desc = zeros(size(It,2),size(It,1),6);
 
 H = zeros(6,6);
-for i = 1 : whole_rect(3)-whole_rect(1)+1
-    for j = 1: whole_rect(4)-whole_rect(2)+1
+for i = 1 : size(It,2)
+    for j = 1: size(It,1)
         % Steepest Descent
         steepest_desc(:,:,i) = [Gx(j,i), Gy(j,i)].*init_dwdp(j,i);
         desc_pixel = reshape(steepest_desc(j,i,:),1,6);
@@ -39,31 +36,30 @@ p6 = 0; %v
 epsilon = 0.01;
 p = [1+p1 p3 p5; p2 1+p4 p6];
 dP = p;
-newP = p;
-
 while norm(dP) > epsilon
     % Warp image according to transform matrix
     tform = affine2d([p;[0,0,1]]');
     warp_It1 = imwarp(It1,tform);
-    It1_mask = (warp_It1~=0);
-    % Compute error by substracting the overlap region
-    max_width = max(size(It1_mask,1),size(It_mask,1));
-    max_height = max(size(It1_mask,2),size(It_mask,2));
-    It1_common = zeros(max_height,max_width);
-    It1_common(1:size(It1_mask,2),1:size(It1_mask,1)) = It1_mask;
-    It_common = zeros(max_height,max_width);
-    It_common(1:size(It_mask,2),1:size(It_mask,1)) = It_mask;
+  
+    % Compute error by substracting the overlap region (by masking)
+    It1_common = zeros(size(It,2),size(It,1));
+    It1_common(1:min(size(It,2),size(warp_It1,2)),...
+               1:min(size(It,1),size(warp_It1,1))) = ...
+               warp_It1(1:min(size(It,2),size(warp_It1,2)),...
+                        1:min(size(It,1),size(warp_It1,1)));
     
-    error_image = It1_common+It_common;
-    error_image = (error_image==2);
-    
-    error_image = warp_It1 - temp_It;
+    common_mask = It_mask+It_common;
+    It(common_mask~=2) = 0;
+    It1_common(common_mask~=2) = 0; 
+    error_image = It1_common-It;
     
     % Per pixel, multiply steepest descent
     SDparam = zeros(6,1);
-
+    
     for i = 1:6
-        SDlayer = steepest_desc(:,:,i).*error_image;
+        SD = steepest_desc(:,:,1);
+        SD(common_mask~=2) = 0;
+        SDlayer = SD.*error_image;
         SDparam(i) = sum(SDlayer(:));
     end
 
@@ -71,12 +67,12 @@ while norm(dP) > epsilon
     dP = pinv(H)*SDparam;
     
     % Update the warp
-    newP = 1/((1+dP(1))*(1+dP(4))-p2*p3)*[-dP1-dP1*p4+p2*p3; ...
-                                    -p2;...
-                                    -p3;...
-                                    -p4-p1*p4+p2*p3;...
-                                    -p5-p4*p5+p3*p6;...
-                                    -p6-p1*p6+p2*p5];
+    newP = 1/((1+dP(1))*(1+dP(4))-dP(2)*dP(3))*[-dP(1)-dP(1)*dP(4)+dP(2)*dP(3); ...
+                                                -dP(2);...
+                                                -dP(3);...
+                                                -dP(4)-dP(1)*dP(4)+dP(2)*dP(3);...
+                                                -dP(5)-dP(4)*dP(5)+dP(3)*dP(6);...
+                                                -dP(6)-dP(1)*dP(6)+dP(2)*dP(5)];
     
     p1 = p1+newP(1)+p1*newP(1)+p3*newP(2);
     p2 = p2+newP(2)+p2*newP(1)+p4*newP(2);
@@ -85,8 +81,9 @@ while norm(dP) > epsilon
     p5 = p5+newP(5)+p1*newP(5)+p3*newP(6);
     p6 = p6+newP(6)+p2*newP(5)+p4*newP(6);
     
-end
+    p = [1+p1 p3 p5; p2 1+p4 p6];
 
-M = [1+newP(1) newP(3) newP(5);...
-     newP(2) 1+newP(4) newP(6);...
-     0       0         1     ];
+end
+M = [1+p1 p3   p5;...
+     p2   1+p4 p6;...
+     0    0    1];

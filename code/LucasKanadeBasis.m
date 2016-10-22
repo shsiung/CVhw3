@@ -34,10 +34,10 @@ for m = 1 : size(bases,3)
 end
 % Hessian 
 H = zeros(6,6);
-for i = 1 : size(Gx,2)
-    for j = 1: size(Gx,1)
-        desc_pixel = reshape(steepest_desc(j,i,:),1,6);
-        H = H + desc_pixel' * desc_pixel;
+for i = 5:6
+    for j = 5:6
+        SD = steepest_desc(:,:,i)'*steepest_desc(:,:,j);
+        H(i,j) = sum(SD(:));
     end
 end
 
@@ -65,7 +65,7 @@ while norm(dP) > epsilon
     SDparam = zeros(6,1);
     
     for i = 5:6
-        SDlayer = steepest_desc(:,:,i).*error_image;
+        SDlayer = steepest_desc(:,:,i)'*error_image;
         SDparam(i) = sum(SDlayer(:));
     end
 
