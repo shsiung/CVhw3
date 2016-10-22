@@ -10,7 +10,7 @@ height = rect(4)-rect(2);
 
 % Template gradient
 A = 0:width;
-B =  0:height;
+B = 0:height;
 A = A + rect(1);
 B = B + rect(2);
 [X,Y] = meshgrid(A, B);
@@ -46,7 +46,9 @@ newP = p;
 while norm(dP) > epsilon
     % Warp image according to warped window
     % Compute error by subtracting It1 window with It window
-    [X1,Y1] = meshgrid(A+newP(5), B+newP(6));
+    newA = A+newP(5);
+    newB = B+newP(6);
+    [X1,Y1] = meshgrid(newA, newB);
     warp_It1 = interp2(double(It1),X1,Y1,'spline');
 
     error_image = warp_It1 - temp_It;
@@ -68,5 +70,5 @@ while norm(dP) > epsilon
     u = newP(5);
     v = newP(6);
     
-    norm(newP);
+    norm(newP)
 end

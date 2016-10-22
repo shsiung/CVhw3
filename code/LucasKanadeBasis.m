@@ -25,7 +25,7 @@ steepest_desc(:,:,6) = Gy;
 % Weighted bases
 for m = 1 : size(bases,3)
    for i = 5:6
-    weight = steepest_desc(:,:,i).*bases(:,:,m);
+    weight = dot(bases(:,:,m),steepest_desc(:,:,i));
     weight = sum(weight(:));
    end
    for i = 1 : 6
@@ -36,7 +36,7 @@ end
 H = zeros(6,6);
 for i = 5:6
     for j = 5:6
-        SD = steepest_desc(:,:,i)'*steepest_desc(:,:,j);
+        SD = steepest_desc(:,:,i)*steepest_desc(:,:,j)';
         H(i,j) = sum(SD(:));
     end
 end
@@ -83,5 +83,4 @@ while norm(dP) > epsilon
     for i = 1 : size(bases,3)
         lambda(i) = sum(sum(bases(:,:,i) .* (warp_It1 - temp_It)));
     end
-    
 end
