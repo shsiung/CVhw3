@@ -2,6 +2,8 @@ function M = LucasKanadeAffine(It, It1)
 % input - image at time t, image at t+1 
 % output - M affine transformation matrix
 
+DEBUG = 1;
+
 %% Precomputation
 % Template gradient - find overlapped region
 It_mask = (double(It)~=0);
@@ -21,12 +23,15 @@ steepest_desc(:,:,6) = Gy;
 H = zeros(6,6);
 for i = 1:6
     for j = 1:6
-        SD = steepest_desc(:,:,i)'*steepest_desc(:,:,j);
+        SD = steepest_desc(:,:,i).*steepest_desc(:,:,j);
         H(i,j) = sum(SD(:));
     end
 end
-% figure(3)
-% imshowpair(uint8(It1),uint8(It),'montage')
+
+if (DEBUG)
+    figure(3)
+    imshowpair(uint8(It1),uint8(It),'montage')
+end
 %% Iterate
 p1 = 0;
 p2 = 0;
@@ -35,15 +40,18 @@ p4 = 0;
 p5 = 0;
 p6 = 0; %v
 
-epsilon = 0.5;
+epsilon = 0.2;
 p = [1+p1 p3   p5;...
      p2   1+p4 p6];
 dP = p;
-% figure(1)
+
+if (DEBUG)
+    figure(1)
+end
 M = eye(3);
 while norm(dP) > epsilon
     % Warp image according to transform matrix
-    tform = affine2d(inv(M)');
+    tform = affine2d(M');
     warp_It1 = imwarp(double(It1),tform);
 %                     drawnow;
 %                     clf
@@ -61,19 +69,24 @@ while norm(dP) > epsilon
     common_mask = It_mask+It1_mask;
     It(common_mask~=2) = 0;
     It1_common(common_mask~=2) = 0; 
-         %imshowpair(It,It1_common,'montage')
+    
+    if (DEBUG)
+         imshowpair(It,It1_common,'montage');
+    end
 
     error_image = It1_common-double(It);
     
-%                  figure(1)
-%                  imshowpair(It1_common,error_image,'montage');
+     if (DEBUG)
+                  figure(1)
+                  imshowpair(It1_common,error_image,'montage');
+     end
 
     % Per pixel, multiply steepest descent
     SDparam = zeros(6,1);
     for i = 1:6
         SD = steepest_desc(:,:,i);
         SD(common_mask~=2) = 0;
-        SDlayer = SD'*error_image;
+        SDlayer = SD.*error_image;
         SDparam(i) = sum(SDlayer(:));
     end
     
@@ -83,12 +96,15 @@ while norm(dP) > epsilon
         for j = 1:6
             SDy = steepest_desc(:,:,j);            
             SDy(common_mask~=2) = 0;
-            SD = SDx'*SDy;
+            SD = SDx.*SDy;
             H(i,j) = sum(SD(:));
         end
     end
-%                figure(4)
-%                imshow(H/norm(H))
+    
+    if (DEBUG)
+               figure(4)
+               imshow(H/norm(H))
+    end
 
     % Compute delta p
     dP = pinv(H)*SDparam;
@@ -112,8 +128,9 @@ while norm(dP) > epsilon
     M = [p ;[0    0    1]];
 end
 
-
-% figure(2)
-% tform = affine2d(inv(M)');
-% warp_It = imwarp(double(It),tform);
-% imshowpair(It1,warp_It,'montage');
+if (DEBUG)
+    figure(2)
+    tform = affine2d(inv(M)');
+    warp_It = imwarp(double(It),tform);
+    imshowpair(It1,warp_It,'montage');
+end

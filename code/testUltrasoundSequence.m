@@ -7,7 +7,7 @@ for i = 1 : size(data,3)-1
    clf
    imshow(data(:,:,i));
    hold on;
-   rectangle('Position',[rect(1),rect(2),rect(3)-rect(1),rect(4)-rect(2)]);
+   rectangle('Position',[rect(1),rect(2),rect(3)-rect(1),rect(4)-rect(2)],'EdgeColor','g');
    drawnow;
 
    [u, v] = LucasKanadeInverseCompositional(data(:,:,i),data(:,:,i+1),rect);
