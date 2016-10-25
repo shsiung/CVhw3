@@ -34,7 +34,7 @@ invH = pinv(H);
 p5 = 0;
 p6 = 0; %v
 
-epsilon = 0.2;
+epsilon = 0.01;
 dP = [1 0 p5; 0 1 p6];
 
 while norm(dP) > epsilon
