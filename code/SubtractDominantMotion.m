@@ -18,8 +18,8 @@ mask=zeros(It_row,It_col);
 
 mask(abs(diff_image) <  thresh) = 0;        
 mask(abs(diff_image) >= thresh) = 1;
-erode_mask = strel('disk',5);  
-dialte_mask = strel('disk',8); 
+erode_mask = strel('disk',0);  
+dialte_mask = strel('disk',5); 
 mask = bwareaopen(mask,2);
 mask = imdilate(mask,dialte_mask);
 mask = imerode(mask,erode_mask);
